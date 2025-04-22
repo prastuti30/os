@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+using namespace std;
+
+void cp_command() {
+    cout << "cp running" << endl;
+    string source, destination;
+
+    cout << "Enter the source file name: ";
+    getline(cin, source);
+    cout << "Enter the destination file name: ";
+    getline(cin, destination);
+
+    pid_t pid = fork();
+    if (pid == 0) { // Child process
+        ifstream src(source, ios::binary);
+        ofstream dest(destination, ios::binary);
+        if (!src || !dest) {
+            cerr << "Error opening files" << endl;
+            exit(1);
+        }
+        // Copying the content from the source file to the destination file
+        dest << src.rdbuf();  // This copies the buffer of src to dest
+        cout << "Child process: cp command started with PID " << getpid() << endl;
+
+        exit(0);
+    } else { // Parent process
+        wait(NULL);
+        cout << "Parent process: cp command executed successfully" << endl;
+    }
+}
+
+void grep_command() {
+    cout << "grep running" << endl;
+    string pattern, filename;
+
+    cout << "Enter pattern to search: ";
+    getline(cin, pattern);
+    cout << "Enter filename: ";
+    getline(cin, filename);
+
+    pid_t pid = fork();
+    if (pid == 0) { // Child process
+        ifstream file(filename);
+        if (!file) {
+            cerr << "Error opening file" << endl;
+            exit(1);
+        }
+        cout << "Child process: grep command started with PID " << getpid() << endl;
+
+        string line;
+        while (getline(file, line)) {
+            if (line.find(pattern) != string::npos)
+                cout << line << endl;
+        }
+        file.close();
+        exit(0);
+    } else if (pid > 0) { // Parent process
+        wait(NULL);
+    } else {
+        cerr << "Fork failed" << endl;
+    }
+}
+
+int main() {
+    int ch;
+    while (true) {
+        cout << "1. cp" << endl;
+        cout << "2. grep" << endl;
+        cout << "3. exit" << endl;
+        cout << "Enter your choice (1, 2, or 3): ";
+        cin >> ch;
+        cin.ignore();  // Clear the input buffer after reading the choice
+        
+        switch (ch) {
+            case 1:
+                cp_command();
+                break;
+            case 2:
+                grep_command();
+                break;
+            case 3:
+                exit(0);
+            default:
+                cout << "Invalid choice, press 3 to exit." << endl;
+        }
+    }
+    return 0;
+}
