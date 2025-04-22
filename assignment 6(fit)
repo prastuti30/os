@@ -18,7 +18,7 @@ void resetMemory(vector<Block>& memoryBlocks, const vector<int>& originalSizes) 
     }
 }
 
-bool allocateProcess(vector<Block>& memoryBlocks, int processSize, int strategy, const string& processName) {
+bool allocateProcess(vector<Block>& memoryBlocks, int processSize, int strategy, const string& processName, int& nextFitIndex) {
     int i;
     bool allocated = false;
 
@@ -62,9 +62,24 @@ bool allocateProcess(vector<Block>& memoryBlocks, int processSize, int strategy,
             cout << processName << " (" << processSize << " KB) allocated using Worst Fit in Block " << worstBlock + 1 << endl;
             allocated = true;
         }
+    } else if (strategy == 4) {  // Next Fit
+        int start = nextFitIndex;
+        for (i = 0; i < memoryBlocks.size(); ++i) {
+            int currentIndex = (start + i) % memoryBlocks.size();
+            if (memoryBlocks[currentIndex].remaining >= processSize) {
+                memoryBlocks[currentIndex].allocations.push_back(processSize);
+                memoryBlocks[currentIndex].remaining -= processSize;
+                nextFitIndex = currentIndex; // Update last allocated index
+                cout << processName << " (" << processSize << " KB) allocated using Next Fit in Block " << currentIndex + 1 << endl;
+                allocated = true;
+                break;
+            }
+        }
     }
+
     return allocated;
 }
+
 
 int main() {
     int numBlocks, numProcesses;
