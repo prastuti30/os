@@ -1,0 +1,135 @@
+
+ 
+#include <iostream> 
+#include <pthread.h> 
+#include <semaphore.h> 
+#include <unistd.h> 
+#include <cstdlib> 
+ 
+#define MAX 50 
+ 
+using namespace std; 
+ 
+sem_t readAccess, bookAccess; 
+int readCount = 0; 
+ 
+// Unsynchronized Reader 
+void* reader_func(void* arg) { 
+    int rNo = *(int*)arg; 
+    cout << "[UNSYNC] Reader " << rNo << " is reading..." << endl; 
+    sleep(rand() % 3 + 1); 
+    cout << "[UNSYNC] Reader " << rNo << " finished reading." << endl; 
+    delete (int*)arg; 
+    pthread_exit(nullptr); 
+} 
+ 
+// Unsynchronized Writer 
+void* writer_func(void* arg) { 
+    int wNo = *(int*)arg; 
+    cout << "[UNSYNC] Writer " << wNo << " is writing..." << endl; 
+    sleep(rand() % 3 + 1); 
+    cout << "[UNSYNC] Writer " << wNo << " finished writing." << endl; 
+    delete (int*)arg; 
+    pthread_exit(nullptr); 
+} 
+ 
+// Synchronized Reader 
+void* synchronized_reader_func(void* arg) { 
+    int rNo = *(int*)arg; 
+ 
+    sem_wait(&readAccess); 
+    readCount++; 
+    if (readCount == 1) { 
+        sem_wait(&bookAccess); // First reader locks 
+    } 
+    sem_post(&readAccess); 
+ 
+    // Reading 
+    cout << "[SYNC] Reader " << rNo << " is reading..." << endl; 
+    sleep(rand() % 3 + 1); 
+    cout << "[SYNC] Reader " << rNo << " finished reading." << endl; 
+ 
+    sem_wait(&readAccess); 
+    readCount--; 
+    if (readCount == 0) { 
+        sem_post(&bookAccess); // Last reader unlocks 
+    } 
+    sem_post(&readAccess); 
+ 
+    delete (int*)arg; 
+    pthread_exit(nullptr); 
+} 
+ 
+// Synchronized Writer 
+void* synchronized_writer_func(void* arg) { 
+    int wNo = *(int*)arg; 
+ 
+    sem_wait(&bookAccess); 
+    cout << "[SYNC] Writer " << wNo << " is writing..." << endl; 
+    sleep(rand() % 3 + 1); 
+    cout << "[SYNC] Writer " << wNo << " finished writing." << endl; 
+    sem_post(&bookAccess); 
+ 
+    delete (int*)arg; 
+    pthread_exit(nullptr); 
+} 
+ 
+int main() { 
+    srand(time(nullptr)); 
+ 
+    int readers, writers, choice; 
+    pthread_t readers_t[MAX], writers_t[MAX]; 
+ 
+    cout << "Choose synchronization mode:\n"; 
+    cout << "1. Synchronized\n"; 
+    cout << "2. Unsynchronized\n"; 
+    cout << "Enter your choice (1 or 2): "; 
+    cin >> choice; 
+ 
+    cout << "Enter number of readers (max 50): "; 
+    cin >> readers; 
+    cout << "Enter number of writers (max 50): "; 
+    cin >> writers; 
+ 
+    if (choice == 1) { 
+        // Synchronized 
+        sem_init(&readAccess, 0, 1); 
+        sem_init(&bookAccess, 0, 1); 
+ 
+        for (int i = 0; i < readers; i++) { 
+            int* arg = new int(i + 1); 
+            pthread_create(&readers_t[i], nullptr, synchronized_reader_func, arg); 
+        } 
+ 
+        for (int i = 0; i < writers; i++) { 
+            int* arg = new int(i + 1); 
+            pthread_create(&writers_t[i], nullptr, synchronized_writer_func, arg); 
+        } 
+ 
+        for (int i = 0; i < readers; i++) pthread_join(readers_t[i], nullptr); 
+        for (int i = 0; i < writers; i++) pthread_join(writers_t[i], nullptr); 
+ 
+        sem_destroy(&readAccess); 
+        sem_destroy(&bookAccess); 
+ 
+    } else if (choice == 2) { 
+        // Unsynchronized 
+        for (int i = 0; i < readers; i++) { 
+            int* arg = new int(i + 1); 
+            pthread_create(&readers_t[i], nullptr, reader_func, arg); 
+        } 
+ 
+        for (int i = 0; i < writers; i++) { 
+            int* arg = new int(i + 1); 
+            pthread_create(&writers_t[i], nullptr, writer_func, arg); 
+        } 
+ 
+        for (int i = 0; i < readers; i++) pthread_join(readers_t[i], nullptr); 
+        for (int i = 0; i < writers; i++) pthread_join(writers_t[i], nullptr); 
+    } else { 
+        cout << "Invalid choice!" << endl; 
+    } 
+ 
+    return 0; 
+} 
+ 
