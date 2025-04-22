@@ -1,0 +1,152 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+// Function to search if a page is present in the frame
+int search(int key, const vector<int>& frame) {
+    for (int i = 0; i < frame.size(); i++) {
+        if (frame[i] == key)
+            return i;
+    }
+    return -1;
+}
+
+void fcfs(const vector<int>&pages, int fc){
+    vector<int> frame(fc,-1);
+    int front =0, fault=0;
+    cout<<"fcfs-------"<<endl;
+    for(int page: pages){
+        if(search(page,frame)==-1){
+            frame[front]=page;
+            front=(front+1)%fc;
+            fault++;
+            cout<<"fault at page : "<<page<<endl;
+        }
+        
+    }
+    cout<<"total faults: "<<fault;
+}
+void lru(const vector<int> &pages, int fc){
+    vector<int> frame(fc, -1);
+    vector<int> time(fc, 0);
+    int t = 0, fault = 0;
+    cout << "lru--------" << endl;
+
+    for(int page: pages){
+        bool found = false;
+        for(int i = 0; i < fc; i++){
+            if(frame[i] == page){
+                found = true;
+                time[i] = t++; // update usage time
+                break;
+            }
+        }
+
+        if(!found){
+            int lru = -1;
+            // Check for empty slot
+            for(int i = 0; i < fc; i++){
+                if(frame[i] == -1){
+                    lru = i;
+                    break;
+                }
+            }
+
+            // If no empty slot, apply LRU
+            if(lru == -1){
+                lru = 0;
+                for(int i = 1; i < fc; i++){
+                    if(time[i] < time[lru]){
+                        lru = i;
+                    }
+                }
+            }
+
+            frame[lru] = page;
+            time[lru] = t++;
+            fault++;
+            cout << "fault at page: " << page << endl;
+        }
+    }
+    cout << "total faults: " << fault << endl;
+}
+
+void opt(const vector<int> & pages, int fc){
+   vector<int> frame(fc,-1);
+   int fault=0;
+   
+   for(int i=0;i<pages.size();i++){
+       int page = pages[i];
+       bool found = false;
+       for(int j=0;j<fc;j++){
+           if(frame[j]==page){
+               found =true;
+               break;
+           }
+       }
+       if(!found){
+           int index = -1, far = i+1, k;
+           for(int j=0;j<fc;j++){
+               for(k=i+1;k<pages.size();k++){
+                   if(frame[j]==pages[k]){
+                       break;
+                   }
+                   if(k==pages.size()){
+                       index = j;
+                       break;
+                   }
+                   if(k>far){
+                       far =k;
+                       index = j;
+                   }
+                   if(index ==-1){
+                       index = j;
+                   }
+               }
+               
+               
+           }
+           frame[index] = page;
+               fault++;
+       }
+       
+   }
+   cout<<"total faults:"<<fault;
+}
+int main(){
+    int pn, fc, ch;
+    cout<<"enter no of pages: "<<endl;
+    cin>>pn;
+    vector<int> pages(pn);
+    
+    cout<<"enter page string: "<<endl;
+    for(int i=0;i<pn; i++){
+        cin>>pages[i];
+    }
+       cout<<"enter no of frame: "<<endl;
+    cin>>fc;
+    
+    do{
+     
+    
+    cout<<"enter your choice\n  1. fcfs 2.lru 3. optimal 4. exit: \n"<<endl;
+    cin>>ch;
+        switch(ch){
+            case 1: fcfs(pages,fc);
+            break;
+            case 2: lru(pages,fc);
+            break;
+            case 3: opt(pages,fc);
+            break;
+            case 4: cout<<"exiting";
+            break;
+            default: cout<<"invalid input"<<endl;
+        }
+    }while(ch!=4);
+    
+    
+    
+    return 0;
+    
+}
