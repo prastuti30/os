@@ -1,0 +1,152 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <climits>
+
+using namespace std;
+
+void FIFO(vector<int> requests, int head) {
+    int total_movement = 0;
+    cout << "\nFIFO Order: " << head;
+    for (int request : requests) {
+        total_movement += abs(request - head);
+        head = request;
+        cout << " -> " << head;
+    }
+    cout << "\nTotal Head Movement: " << total_movement << endl;
+}
+
+void SSTF(vector<int> requests, int head) {
+    int total_movement = 0;
+    vector<bool> visited(requests.size(), false);
+    cout << "\nSSTF Order: " << head;
+
+    for (size_t i = 0; i < requests.size(); i++) {
+        int min_distance = INT_MAX, min_index = -1;
+        for (size_t j = 0; j < requests.size(); j++) {
+            if (!visited[j] && abs(requests[j] - head) < min_distance) {
+                min_distance = abs(requests[j] - head);
+                min_index = j;
+            }
+        }
+        total_movement += min_distance;
+        head = requests[min_index];
+        visited[min_index] = true;
+        cout << " -> " << head;
+    }
+    cout << "\nTotal Head Movement: " << total_movement << endl;
+}
+
+void SCAN(vector<int> requests, int head, int disk_size) {
+    vector<int> sorted = requests;
+    sorted.push_back(0); // Add 0 (beginning of the disk)
+    sorted.push_back(disk_size - 1); // Add max disk size -1 (end of the disk)
+    sort(sorted.begin(), sorted.end());
+
+    int total_movement = 0;
+    cout << "\nSCAN Order: " << head;
+    int index = 0;
+
+    // Moving towards the right first
+    while (index < sorted.size() && sorted[index] < head)
+        index++;
+
+    for (int i = index; i < sorted.size(); i++) {
+        total_movement += abs(sorted[i] - head);
+        head = sorted[i];
+        cout << " -> " << head;
+    }
+
+    // Moving left from the highest point
+    for (int i = index - 1; i >= 0; i--) {
+        total_movement += abs(sorted[i] - head);
+        head = sorted[i];
+        cout << " -> " << head;
+    }
+
+    cout << "\nTotal Head Movement: " << total_movement << endl;
+}
+
+void C_SCAN(vector<int> requests, int head, int disk_size) {
+    vector<int> sorted = requests;
+    sorted.push_back(0); // Add 0 (beginning of the disk)
+    sorted.push_back(disk_size - 1); // Add max disk size -1 (end of the disk)
+    sort(sorted.begin(), sorted.end());
+
+    int total_movement = 0;
+    cout << "\nC-SCAN Order: " << head;
+    int index = 0;
+
+    while (index < sorted.size() && sorted[index] < head)
+        index++;
+
+    // Moving towards the right
+    for (int i = index; i < sorted.size(); i++) {
+        total_movement += abs(sorted[i] - head);
+        head = sorted[i];
+        cout << " -> " << head;
+    }
+
+    // Direct jump to 0 (without counting it in total movement)
+    if (head != disk_size - 1) {
+        total_movement += abs(disk_size - 1 - head);
+        head = 0;
+        cout << " -> 0";
+    }
+
+    // Continue from the beginning
+    for (int i = 0; i < index; i++) {
+        total_movement += abs(sorted[i] - head);
+        head = sorted[i];
+        cout << " -> " << head;
+    }
+
+    cout << "\nTotal Head Movement: " << total_movement << endl;
+}
+
+int main() {
+    int n, head, choice, disk_size;
+    vector<int> requests;
+
+    cout << "Enter the number of requests: ";
+    cin >> n;
+    cout << "Enter the request queue: ";
+    requests.resize(n);
+    for (int i = 0; i < n; i++) {
+        cin >> requests[i];
+    }
+
+    cout << "Enter the initial head position: ";
+    cin >> head;
+    cout << "Enter the disk size: ";
+    cin >> disk_size;
+
+    while (true) {
+        cout << "\nDisk Scheduling Algorithms:\n";
+        cout << "1. FIFO\n2. SSTF\n3. SCAN\n4. C-SCAN\n5. Exit\n";
+        cout << "Choose an option: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                FIFO(requests, head);
+                break;
+            case 2:
+                SSTF(requests, head);
+                break;
+            case 3:
+                SCAN(requests, head, disk_size);
+                break;
+            case 4:
+                C_SCAN(requests, head, disk_size);
+                break;
+            case 5:
+                exit(0);
+            default:
+                cout << "Invalid choice! Please select a valid option.\n";
+        }
+    }
+
+    return 0;
+}
