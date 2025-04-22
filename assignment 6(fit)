@@ -1,153 +1,171 @@
 #include <iostream>
 #include <vector>
-#include <climits>
-
 using namespace std;
 
-struct Block {
-    int size;
-    int remaining;  // Remaining space in the block after allocation
-    vector<int> allocations;  // Allocated process IDs
-};
+// First Fit Memory Allocation
+void firstFit(vector<int> blocks, vector<int> processes) {
+    vector<int> allocation(processes.size(), -1);
 
-void resetMemory(vector<Block>& memoryBlocks, const vector<int>& originalSizes) {
-    // Reset memory blocks to original sizes and clear allocations
-    for (size_t i = 0; i < memoryBlocks.size(); ++i) {
-        memoryBlocks[i].remaining = originalSizes[i];
-        memoryBlocks[i].allocations.clear();
-    }
-}
-
-bool allocateProcess(vector<Block>& memoryBlocks, int processSize, int strategy, const string& processName, int& nextFitIndex) {
-    int i;
-    bool allocated = false;
-
-    if (strategy == 1) {  // First Fit
-        for (i = 0; i < memoryBlocks.size(); ++i) {
-            if (memoryBlocks[i].remaining >= processSize) {
-                memoryBlocks[i].allocations.push_back(processSize);
-                memoryBlocks[i].remaining -= processSize;
-                cout << processName << " (" << processSize << " KB) allocated using First Fit in Block " << i + 1 << endl;
-                allocated = true;
-                break;
-            }
-        }
-    } else if (strategy == 2) {  // Best Fit
-        int minFit = INT_MAX;
-        int bestBlock = -1;
-        for (i = 0; i < memoryBlocks.size(); ++i) {
-            if (memoryBlocks[i].remaining >= processSize && memoryBlocks[i].remaining - processSize < minFit) {
-                minFit = memoryBlocks[i].remaining - processSize;
-                bestBlock = i;
-            }
-        }
-        if (bestBlock != -1) {
-            memoryBlocks[bestBlock].allocations.push_back(processSize);
-            memoryBlocks[bestBlock].remaining -= processSize;
-            cout << processName << " (" << processSize << " KB) allocated using Best Fit in Block " << bestBlock + 1 << endl;
-            allocated = true;
-        }
-    } else if (strategy == 3) {  // Worst Fit
-        int maxFit = -1;
-        int worstBlock = -1;
-        for (i = 0; i < memoryBlocks.size(); ++i) {
-            if (memoryBlocks[i].remaining >= processSize && memoryBlocks[i].remaining > maxFit) {
-                maxFit = memoryBlocks[i].remaining;
-                worstBlock = i;
-            }
-        }
-        if (worstBlock != -1) {
-            memoryBlocks[worstBlock].allocations.push_back(processSize);
-            memoryBlocks[worstBlock].remaining -= processSize;
-            cout << processName << " (" << processSize << " KB) allocated using Worst Fit in Block " << worstBlock + 1 << endl;
-            allocated = true;
-        }
-    } else if (strategy == 4) {  // Next Fit
-        int start = nextFitIndex;
-        for (i = 0; i < memoryBlocks.size(); ++i) {
-            int currentIndex = (start + i) % memoryBlocks.size();
-            if (memoryBlocks[currentIndex].remaining >= processSize) {
-                memoryBlocks[currentIndex].allocations.push_back(processSize);
-                memoryBlocks[currentIndex].remaining -= processSize;
-                nextFitIndex = currentIndex; // Update last allocated index
-                cout << processName << " (" << processSize << " KB) allocated using Next Fit in Block " << currentIndex + 1 << endl;
-                allocated = true;
+    for (int i = 0; i < processes.size(); i++) {
+        for (int j = 0; j < blocks.size(); j++) {
+            if (blocks[j] >= processes[i]) {
+                allocation[i] = j;
+                blocks[j] -= processes[i];
                 break;
             }
         }
     }
 
-    return allocated;
+    cout << "\nFirst Fit Allocation:\n";
+    for (int i = 0; i < processes.size(); i++) {
+        cout << "Process " << i + 1 << " (Size: " << processes[i] << ") -> ";
+        if (allocation[i] != -1)
+            cout << "Block " << allocation[i] + 1 << endl;
+        else
+            cout << "Not Allocated\n";
+    }
 }
 
+// Best Fit Memory Allocation
+void bestFit(vector<int> blocks, vector<int> processes) {
+    vector<int> allocation(processes.size(), -1);
 
+    for (int i = 0; i < processes.size(); i++) {
+        int bestIdx = -1;
+        for (int j = 0; j < blocks.size(); j++) {
+            if (blocks[j] >= processes[i]) {
+                if (bestIdx == -1 || blocks[j] < blocks[bestIdx])
+                    bestIdx = j;
+            }
+        }
+
+        if (bestIdx != -1) {
+            allocation[i] = bestIdx;
+            blocks[bestIdx] -= processes[i];
+        }
+    }
+
+    cout << "\nBest Fit Allocation:\n";
+    for (int i = 0; i < processes.size(); i++) {
+        cout << "Process " << i + 1 << " (Size: " << processes[i] << ") -> ";
+        if (allocation[i] != -1)
+            cout << "Block " << allocation[i] + 1 << endl;
+        else
+            cout << "Not Allocated\n";
+    }
+}
+
+// Worst Fit Memory Allocation
+void worstFit(vector<int> blocks, vector<int> processes) {
+    vector<int> allocation(processes.size(), -1);
+
+    for (int i = 0; i < processes.size(); i++) {
+        int worstIdx = -1;
+        for (int j = 0; j < blocks.size(); j++) {
+            if (blocks[j] >= processes[i]) {
+                if (worstIdx == -1 || blocks[j] > blocks[worstIdx])
+                    worstIdx = j;
+            }
+        }
+
+        if (worstIdx != -1) {
+            allocation[i] = worstIdx;
+            blocks[worstIdx] -= processes[i];
+        }
+    }
+
+    cout << "\nWorst Fit Allocation:\n";
+    for (int i = 0; i < processes.size(); i++) {
+        cout << "Process " << i + 1 << " (Size: " << processes[i] << ") -> ";
+        if (allocation[i] != -1)
+            cout << "Block " << allocation[i] + 1 << endl;
+        else
+            cout << "Not Allocated\n";
+    }
+}
+
+// Next Fit Memory Allocation
+void nextFit(vector<int> blocks, vector<int> processes) {
+    vector<int> allocation(processes.size(), -1);
+    int j = 0; // Start from the beginning
+
+    for (int i = 0; i < processes.size(); i++) {
+        int count = 0;
+        bool allocated = false;
+
+        while (count < blocks.size()) {
+            if (blocks[j] >= processes[i]) {
+                allocation[i] = j;
+                blocks[j] -= processes[i];
+                allocated = true;
+                break;
+            }
+            j = (j + 1) % blocks.size();
+            count++;
+        }
+    }
+
+    cout << "\nNext Fit Allocation:\n";
+    for (int i = 0; i < processes.size(); i++) {
+        cout << "Process " << i + 1 << " (Size: " << processes[i] << ") -> ";
+        if (allocation[i] != -1)
+            cout << "Block " << allocation[i] + 1 << endl;
+        else
+            cout << "Not Allocated\n";
+    }
+}
+
+// Main Function
 int main() {
-    int numBlocks, numProcesses;
+    int nBlocks, nProcesses, choice;
+    vector<int> blocks, processes;
+
     cout << "Enter number of memory blocks: ";
-    cin >> numBlocks;
-
-    vector<Block> memoryBlocks(numBlocks);
-    vector<int> originalSizes(numBlocks);
-
-    // Input memory block sizes
-    for (int i = 0; i < numBlocks; ++i) {
-        cout << "Block " << i + 1 << " size (in KB): ";
-        cin >> memoryBlocks[i].size;
-        memoryBlocks[i].remaining = memoryBlocks[i].size;  // Initialize remaining space
-        originalSizes[i] = memoryBlocks[i].size;  // Save original sizes for resetting later
+    cin >> nBlocks;
+    blocks.resize(nBlocks);
+    cout << "Enter sizes of " << nBlocks << " memory blocks:\n";
+    for (int i = 0; i < nBlocks; i++) {
+        cin >> blocks[i];
     }
 
-    // Input process sizes
     cout << "Enter number of processes: ";
-    cin >> numProcesses;
-    vector<int> processSizes(numProcesses);
-    for (int i = 0; i < numProcesses; ++i) {
-        cout << "Enter size of Process " << i + 1 << ": ";
-        cin >> processSizes[i];
+    cin >> nProcesses;
+    processes.resize(nProcesses);
+    cout << "Enter sizes of " << nProcesses << " processes:\n";
+    for (int i = 0; i < nProcesses; i++) {
+        cin >> processes[i];
     }
 
-    int choice;
     do {
-        cout << "\n1. First Fit\n2. Best Fit\n3. Worst Fit\n4. Next Fit\n5. Release Memory\n6. Display\n7. Exit\n";
-        cout << "Enter choice: ";
+        cout << "\nMemory Allocation Techniques Menu:\n";
+        cout << "1. First Fit\n";
+        cout << "2. Best Fit\n";
+        cout << "3. Worst Fit\n";
+        cout << "4. Next Fit\n";
+        cout << "5. Exit\n";
+        cout << "Enter your choice: ";
         cin >> choice;
 
-        if (choice == 1 || choice == 2 || choice == 3) {
-            // Reset memory before applying the strategy
-            resetMemory(memoryBlocks, originalSizes);
-
-            // Try to allocate processes
-            for (int i = 0; i < numProcesses; ++i) {
-                string processName = "Process " + to_string(i + 1);
-                bool allocated = allocateProcess(memoryBlocks, processSizes[i], choice, processName);
-                if (!allocated) {
-                    cout << processName << " (" << processSizes[i] << " KB) cannot be allocated.\n";
-                }
-            }
+        switch (choice) {
+            case 1:
+                firstFit(blocks, processes);
+                break;
+            case 2:
+                bestFit(blocks, processes);
+                break;
+            case 3:
+                worstFit(blocks, processes);
+                break;
+            case 4:
+                nextFit(blocks, processes);
+                break;
+            case 5:
+                cout << "Exiting...\n";
+                break;
+            default:
+                cout << "Invalid choice. Try again.\n";
         }
-        else if (choice == 5) {
-            // Release memory by resetting it
-            resetMemory(memoryBlocks, originalSizes);
-            cout << "Memory released.\n";
-        }
-        else if (choice == 6) {
-            cout << "\nCurrent Memory Blocks Allocation:\n";
-            for (int i = 0; i < numBlocks; ++i) {
-                cout << "Block " << i + 1 << ": " << memoryBlocks[i].remaining << " KB remaining (";
-                for (int j = 0; j < memoryBlocks[i].allocations.size(); ++j) {
-                    cout << "Process " << j + 1 << " (" << memoryBlocks[i].allocations[j] << " KB), ";
-                }
-                cout << ")\n";
-            }
-        }
-        else if (choice == 7) {
-            cout << "Exiting...\n";
-        }
-        else {
-            cout << "Invalid choice. Please try again.\n";
-        }
-
-    } while (choice != 7);
+    } while (choice != 5);
 
     return 0;
 }
